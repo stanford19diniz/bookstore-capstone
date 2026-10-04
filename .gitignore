@@ -1,0 +1,30 @@
+# Maven build output
+bookstore-backend/target/
+*.class
+*.jar
+*.war
+
+# Spring Boot local profile (contains DB passwords — never commit)
+bookstore-backend/src/main/resources/application-local.yml
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# References folder (large binary/PDF assets)
+references/
+
+# Bob workspace tmp
+.bob/tmp/

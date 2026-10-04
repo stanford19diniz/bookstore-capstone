@@ -1,0 +1,2719 @@
+openapi: 3.1.0
+info:
+  title: eCommerce Bookstore API
+  description: |
+    REST API for the eCommerce Bookstore platform.
+    Covers authentication, catalog, cart, orders, payments, shipping, reviews and recommendations.
+    Spec-driven development — this file is the single source of truth for all backend code generation.
+  version: 1.0.0
+  contact:
+    name: Bookstore API Team
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+  - url: https://api.bookstore.example.com/api/v1
+    description: Production
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Authentication
+  - name: Users
+  - name: Categories
+  - name: Authors
+  - name: Publishers
+  - name: Books
+  - name: Search
+  - name: Wishlist
+  - name: Cart
+  - name: Orders
+  - name: Payments
+  - name: Shipping
+  - name: Reviews
+  - name: Coupons
+  - name: Recommendations
+
+# ─────────────────────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────────────────────
+paths:
+
+  # ── AUTH ──────────────────────────────────────────────────
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new customer account
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Authenticate and receive JWT tokens
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuthResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuthResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout current user
+      operationId: logout
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current authenticated user
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ── USERS ─────────────────────────────────────────────────
+  /users:
+    get:
+      tags: [Users]
+      summary: List all users (Admin)
+      operationId: listUsers
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+      responses:
+        '200':
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedApiResponseUserResponse'
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      operationId: getUserById
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags: [Users]
+      summary: Update user profile
+      operationId: updateUser
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    delete:
+      tags: [Users]
+      summary: Deactivate user (Admin)
+      operationId: deactivateUser
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: User deactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+
+  /users/{id}/addresses:
+    get:
+      tags: [Users]
+      summary: List addresses for a user
+      operationId: listUserAddresses
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Address list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAddressList'
+    post:
+      tags: [Users]
+      summary: Add address for a user
+      operationId: addUserAddress
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
+      responses:
+        '201':
+          description: Address created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAddressResponse'
+
+  /users/{id}/addresses/{addressId}:
+    put:
+      tags: [Users]
+      summary: Update an address
+      operationId: updateUserAddress
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+        - name: addressId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
+      responses:
+        '200':
+          description: Address updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAddressResponse'
+    delete:
+      tags: [Users]
+      summary: Delete an address
+      operationId: deleteUserAddress
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+        - name: addressId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Address deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+
+  # ── CATEGORIES ────────────────────────────────────────────
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List all categories
+      operationId: listCategories
+      security: []
+      responses:
+        '200':
+          description: Category list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCategoryList'
+    post:
+      tags: [Categories]
+      summary: Create category (Admin)
+      operationId: createCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCategoryResponse'
+
+  /categories/{id}:
+    get:
+      tags: [Categories]
+      summary: Get category by ID
+      operationId: getCategoryById
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Category found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCategoryResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags: [Categories]
+      summary: Update category (Admin)
+      operationId: updateCategory
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+      responses:
+        '200':
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCategoryResponse'
+    delete:
+      tags: [Categories]
+      summary: Delete category (Admin)
+      operationId: deleteCategory
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+
+  # ── AUTHORS ───────────────────────────────────────────────
+  /authors:
+    get:
+      tags: [Authors]
+      summary: List authors
+      operationId: listAuthors
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+      responses:
+        '200':
+          description: Paginated author list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedApiResponseAuthorResponse'
+    post:
+      tags: [Authors]
+      summary: Create author (Admin)
+      operationId: createAuthor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorRequest'
+      responses:
+        '201':
+          description: Author created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuthorResponse'
+
+  /authors/{id}:
+    get:
+      tags: [Authors]
+      summary: Get author by ID
+      operationId: getAuthorById
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Author found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuthorResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags: [Authors]
+      summary: Update author (Admin)
+      operationId: updateAuthor
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorRequest'
+      responses:
+        '200':
+          description: Author updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuthorResponse'
+    delete:
+      tags: [Authors]
+      summary: Delete author (Admin)
+      operationId: deleteAuthor
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+
+  # ── PUBLISHERS ────────────────────────────────────────────
+  /publishers:
+    get:
+      tags: [Publishers]
+      summary: List publishers
+      operationId: listPublishers
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+      responses:
+        '200':
+          description: Paginated publisher list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedApiResponsePublisherResponse'
+    post:
+      tags: [Publishers]
+      summary: Create publisher (Admin)
+      operationId: createPublisher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublisherRequest'
+      responses:
+        '201':
+          description: Publisher created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePublisherResponse'
+
+  /publishers/{id}:
+    get:
+      tags: [Publishers]
+      summary: Get publisher by ID
+      operationId: getPublisherById
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Publisher found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePublisherResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags: [Publishers]
+      summary: Update publisher (Admin)
+      operationId: updatePublisher
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublisherRequest'
+      responses:
+        '200':
+          description: Publisher updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePublisherResponse'
+    delete:
+      tags: [Publishers]
+      summary: Delete publisher (Admin)
+      operationId: deletePublisher
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+
+  # ── BOOKS ─────────────────────────────────────────────────
+  /books:
+    get:
+      tags: [Books]
+      summary: List / filter books
+      operationId: listBooks
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: publisherId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+            format: double
+            minimum: 0
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+            format: double
+            minimum: 0
+        - name: language
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated book list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedApiResponseBookSummaryResponse'
+    post:
+      tags: [Books]
+      summary: Create book (Admin)
+      operationId: createBook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookRequest'
+      responses:
+        '201':
+          description: Book created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBookDetailResponse'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /books/{id}:
+    get:
+      tags: [Books]
+      summary: Get book detail
+      operationId: getBookById
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Book detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBookDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags: [Books]
+      summary: Update book (Admin)
+      operationId: updateBook
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookRequest'
+      responses:
+        '200':
+          description: Book updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBookDetailResponse'
+    delete:
+      tags: [Books]
+      summary: Delete book (Admin)
+      operationId: deleteBook
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+
+  /books/{id}/related:
+    get:
+      tags: [Books]
+      summary: Get related books
+      operationId: getRelatedBooks
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Related books
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBookSummaryList'
+
+  # ── SEARCH ────────────────────────────────────────────────
+  /search/books:
+    get:
+      tags: [Search]
+      summary: Full-text search books
+      operationId: searchBooks
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 200
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: authorId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: publisherId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+            minimum: 0
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+            minimum: 0
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedApiResponseBookSummaryResponse'
+
+  # ── WISHLIST ──────────────────────────────────────────────
+  /wishlist:
+    get:
+      tags: [Wishlist]
+      summary: Get my wishlist
+      operationId: getMyWishlist
+      responses:
+        '200':
+          description: Wishlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseWishlistResponse'
+    delete:
+      tags: [Wishlist]
+      summary: Clear wishlist
+      operationId: clearWishlist
+      responses:
+        '200':
+          description: Cleared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+
+  /wishlist/items:
+    post:
+      tags: [Wishlist]
+      summary: Add book to wishlist
+      operationId: addToWishlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WishlistItemRequest'
+      responses:
+        '200':
+          description: Updated wishlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseWishlistResponse'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /wishlist/items/{bookId}:
+    delete:
+      tags: [Wishlist]
+      summary: Remove book from wishlist
+      operationId: removeFromWishlist
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated wishlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+
+  # ── CART ──────────────────────────────────────────────────
+  /cart:
+    get:
+      tags: [Cart]
+      summary: Get my cart
+      operationId: getMyCart
+      responses:
+        '200':
+          description: Cart with totals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCartResponse'
+    delete:
+      tags: [Cart]
+      summary: Clear cart
+      operationId: clearCart
+      responses:
+        '200':
+          description: Cart cleared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+
+  /cart/items:
+    post:
+      tags: [Cart]
+      summary: Add item to cart
+      operationId: addToCart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemRequest'
+      responses:
+        '200':
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCartResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableError'
+
+  /cart/items/{bookId}:
+    patch:
+      tags: [Cart]
+      summary: Update cart item quantity
+      operationId: updateCartItemQuantity
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateQtyRequest'
+      responses:
+        '200':
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCartResponse'
+    delete:
+      tags: [Cart]
+      summary: Remove item from cart
+      operationId: removeFromCart
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCartResponse'
+
+  # ── ORDERS ────────────────────────────────────────────────
+  /orders:
+    get:
+      tags: [Orders]
+      summary: My order history
+      operationId: listMyOrders
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+      responses:
+        '200':
+          description: Paginated orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedApiResponseOrderSummaryResponse'
+    post:
+      tags: [Orders]
+      summary: Place a new order
+      operationId: placeOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOrderRequest'
+      responses:
+        '201':
+          description: Order placed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOrderResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableError'
+
+  /orders/admin:
+    get:
+      tags: [Orders]
+      summary: List all orders (Admin)
+      operationId: listAllOrders
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: All orders paginated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedApiResponseOrderSummaryResponse'
+
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Get order detail
+      operationId: getOrderById
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Order detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOrderResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /orders/{id}/cancel:
+    post:
+      tags: [Orders]
+      summary: Cancel order (within 48hrs)
+      operationId: cancelOrder
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Order cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOrderResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableError'
+
+  /orders/{id}/return:
+    post:
+      tags: [Orders]
+      summary: Initiate order return
+      operationId: returnOrder
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReturnOrderRequest'
+      responses:
+        '200':
+          description: Return initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOrderResponse'
+
+  /orders/{id}/buy-again:
+    post:
+      tags: [Orders]
+      summary: Buy Again — re-add order items to cart
+      operationId: buyAgain
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Items added to cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCartResponse'
+
+  # ── PAYMENTS ──────────────────────────────────────────────
+  /payments:
+    post:
+      tags: [Payments]
+      summary: Process payment for an order
+      operationId: processPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '200':
+          description: Payment processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePaymentResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableError'
+
+  /payments/{orderId}:
+    get:
+      tags: [Payments]
+      summary: Get payment for an order
+      operationId: getPaymentByOrderId
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePaymentResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /payments/{id}/refund:
+    post:
+      tags: [Payments]
+      summary: Refund a payment (Admin)
+      operationId: refundPayment
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Refund initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePaymentResponse'
+
+  /payments/wallet:
+    get:
+      tags: [Payments]
+      summary: Get my wallet
+      operationId: getMyWallet
+      responses:
+        '200':
+          description: Wallet balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseWalletResponse'
+
+  /payments/wallet/topup:
+    post:
+      tags: [Payments]
+      summary: Top up wallet
+      operationId: topUpWallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopUpRequest'
+      responses:
+        '200':
+          description: Wallet updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseWalletResponse'
+
+  # ── SHIPPING ──────────────────────────────────────────────
+  /shipments/{orderId}:
+    get:
+      tags: [Shipping]
+      summary: Get shipment for an order
+      operationId: getShipmentByOrderId
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Shipment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseShipmentResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /shipments/{id}:
+    patch:
+      tags: [Shipping]
+      summary: Update shipment status (Admin)
+      operationId: updateShipment
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipmentUpdateRequest'
+      responses:
+        '200':
+          description: Shipment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseShipmentResponse'
+
+  /shipments/calculate-rate:
+    post:
+      tags: [Shipping]
+      summary: Calculate shipping rate
+      operationId: calculateShippingRate
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingRateRequest'
+      responses:
+        '200':
+          description: Rate calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseShippingRateResponse'
+
+  # ── REVIEWS ───────────────────────────────────────────────
+  /reviews/books/{bookId}:
+    get:
+      tags: [Reviews]
+      summary: List approved reviews for a book
+      operationId: listBookReviews
+      security: []
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedApiResponseReviewResponse'
+
+  /reviews:
+    post:
+      tags: [Reviews]
+      summary: Submit a review
+      operationId: submitReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+      responses:
+        '201':
+          description: Review submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseReviewResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /reviews/me:
+    get:
+      tags: [Reviews]
+      summary: My reviews
+      operationId: listMyReviews
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: My reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedApiResponseReviewResponse'
+
+  /reviews/{id}/approve:
+    patch:
+      tags: [Reviews]
+      summary: Approve review (Admin)
+      operationId: approveReview
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Review approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseReviewResponse'
+
+  /reviews/{id}/reject:
+    patch:
+      tags: [Reviews]
+      summary: Reject review (Admin)
+      operationId: rejectReview
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Review rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseReviewResponse'
+
+  /reviews/{id}:
+    delete:
+      tags: [Reviews]
+      summary: Delete review (Admin)
+      operationId: deleteReview
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+
+  # ── COUPONS ───────────────────────────────────────────────
+  /coupons/validate:
+    get:
+      tags: [Coupons]
+      summary: Validate a coupon code
+      operationId: validateCoupon
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: orderTotal
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+      responses:
+        '200':
+          description: Coupon valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCouponResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableError'
+
+  /coupons:
+    get:
+      tags: [Coupons]
+      summary: List coupons (Admin)
+      operationId: listCoupons
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated coupons
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedApiResponseCouponResponse'
+    post:
+      tags: [Coupons]
+      summary: Create coupon (Admin)
+      operationId: createCoupon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CouponRequest'
+      responses:
+        '201':
+          description: Coupon created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCouponResponse'
+
+  /coupons/{id}:
+    put:
+      tags: [Coupons]
+      summary: Update coupon (Admin)
+      operationId: updateCoupon
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CouponRequest'
+      responses:
+        '200':
+          description: Coupon updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCouponResponse'
+
+  /coupons/{id}/deactivate:
+    patch:
+      tags: [Coupons]
+      summary: Deactivate coupon (Admin)
+      operationId: deactivateCoupon
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Coupon deactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCouponResponse'
+
+  # ── RECOMMENDATIONS ───────────────────────────────────────
+  /recommendations:
+    get:
+      tags: [Recommendations]
+      summary: Get personalised recommendations
+      operationId: getMyRecommendations
+      parameters:
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+      responses:
+        '200':
+          description: Personalised book list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBookSummaryList'
+
+  /recommendations/featured:
+    get:
+      tags: [Recommendations]
+      summary: Get featured / trending books
+      operationId: getFeaturedBooks
+      security: []
+      parameters:
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+      responses:
+        '200':
+          description: Featured books
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBookSummaryList'
+
+# ─────────────────────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────────────────────
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  # ── PARAMETERS ────────────────────────────────────────────
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+    SortParam:
+      name: sort
+      in: query
+      schema:
+        type: string
+        example: createdAt,desc
+
+  # ── RESPONSES ─────────────────────────────────────────────
+  responses:
+    ValidationError:
+      description: Validation failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    UnauthorizedError:
+      description: Authentication required or failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    ForbiddenError:
+      description: Access denied
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    ConflictError:
+      description: Resource already exists
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    UnprocessableError:
+      description: Business rule violation
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+  # ── SCHEMAS ───────────────────────────────────────────────
+  schemas:
+
+    # ── Enums ────────────────────────────────────────────────
+    OrderStatus:
+      type: string
+      enum: [PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED, RETURNED]
+
+    PaymentMethod:
+      type: string
+      enum: [CREDIT_CARD, DEBIT_CARD, WALLET, GIFT_CARD, POINTS]
+
+    PaymentStatus:
+      type: string
+      enum: [INITIATED, SUCCESS, FAILED, REFUNDED]
+
+    ShipmentStatus:
+      type: string
+      enum: [CREATED, DISPATCHED, IN_TRANSIT, DELIVERED, CANCELLED, RETURNED]
+
+    ReviewStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED]
+
+    DiscountType:
+      type: string
+      enum: [PERCENTAGE, FIXED]
+
+    # ── Problem Details (RFC 7807) ───────────────────────────
+    ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    # ── API Envelope ─────────────────────────────────────────
+    ApiMeta:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    PageMeta:
+      allOf:
+        - $ref: '#/components/schemas/ApiMeta'
+        - type: object
+          properties:
+            page:
+              type: integer
+            size:
+              type: integer
+            totalElements:
+              type: integer
+              format: int64
+            totalPages:
+              type: integer
+
+    ApiResponseMessage:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Auth Schemas ─────────────────────────────────────────
+    RegisterRequest:
+      type: object
+      required: [firstName, lastName, email, password]
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 20
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          default: Bearer
+        expiresIn:
+          type: integer
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    ApiResponseAuthResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/AuthResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── User Schemas ─────────────────────────────────────────
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        isActive:
+          type: boolean
+        roles:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 20
+
+    AddressRequest:
+      type: object
+      required: [line1, city, state, country, pincode]
+      properties:
+        label:
+          type: string
+          maxLength: 50
+        line1:
+          type: string
+          minLength: 1
+          maxLength: 255
+        line2:
+          type: string
+          maxLength: 255
+        city:
+          type: string
+          minLength: 1
+          maxLength: 100
+        state:
+          type: string
+          minLength: 1
+          maxLength: 100
+        country:
+          type: string
+          minLength: 1
+          maxLength: 100
+        pincode:
+          type: string
+          minLength: 1
+          maxLength: 20
+        isDefault:
+          type: boolean
+          default: false
+
+    AddressResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        line1:
+          type: string
+        line2:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country:
+          type: string
+        pincode:
+          type: string
+        isDefault:
+          type: boolean
+
+    ApiResponseUserResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/UserResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    PagedApiResponseUserResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+        errors:
+          type: array
+          items: {}
+
+    ApiResponseAddressList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AddressResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    ApiResponseAddressResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/AddressResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Category Schemas ─────────────────────────────────────
+    CategoryRequest:
+      type: object
+      required: [name, slug]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 100
+        parentId:
+          type: string
+          format: uuid
+        displayOrder:
+          type: integer
+          default: 0
+
+    CategoryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        parentId:
+          type: string
+          format: uuid
+        displayOrder:
+          type: integer
+
+    ApiResponseCategoryResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/CategoryResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    ApiResponseCategoryList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Author Schemas ───────────────────────────────────────
+    AuthorRequest:
+      type: object
+      required: [firstName, lastName]
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        bio:
+          type: string
+        profileImageUrl:
+          type: string
+          format: uri
+
+    AuthorResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        bio:
+          type: string
+        profileImageUrl:
+          type: string
+
+    ApiResponseAuthorResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/AuthorResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    PagedApiResponseAuthorResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthorResponse'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Publisher Schemas ────────────────────────────────────
+    PublisherRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        country:
+          type: string
+          maxLength: 100
+        websiteUrl:
+          type: string
+          format: uri
+
+    PublisherResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        country:
+          type: string
+        websiteUrl:
+          type: string
+
+    ApiResponsePublisherResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/PublisherResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    PagedApiResponsePublisherResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublisherResponse'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Book Schemas ─────────────────────────────────────────
+    BookRequest:
+      type: object
+      required: [title, isbn, publisherId, price, stockQuantity, deliveryDays, authorIds, categoryIds]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        isbn:
+          type: string
+          pattern: '^97[89]\d{10}$'
+        publisherId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        price:
+          type: number
+          format: double
+          minimum: 0
+        stockQuantity:
+          type: integer
+          minimum: 0
+        coverImageUrl:
+          type: string
+          format: uri
+        language:
+          type: string
+          default: English
+        pages:
+          type: integer
+          minimum: 1
+        publishedDate:
+          type: string
+          format: date
+        deliveryDays:
+          type: integer
+          minimum: 1
+        authorIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+        categoryIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+
+    BookSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        isbn:
+          type: string
+        price:
+          type: number
+          format: double
+        coverImageUrl:
+          type: string
+        averageRating:
+          type: number
+          format: double
+        reviewCount:
+          type: integer
+        deliveryDays:
+          type: integer
+        authors:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthorResponse'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryResponse'
+
+    BookDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/BookSummaryResponse'
+        - type: object
+          properties:
+            description:
+              type: string
+            publisher:
+              $ref: '#/components/schemas/PublisherResponse'
+            language:
+              type: string
+            pages:
+              type: integer
+            publishedDate:
+              type: string
+              format: date
+            stockQuantity:
+              type: integer
+            isActive:
+              type: boolean
+
+    ApiResponseBookDetailResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/BookDetailResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    PagedApiResponseBookSummaryResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookSummaryResponse'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+        errors:
+          type: array
+          items: {}
+
+    ApiResponseBookSummaryList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookSummaryResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Wishlist Schemas ─────────────────────────────────────
+    WishlistItemRequest:
+      type: object
+      required: [bookId]
+      properties:
+        bookId:
+          type: string
+          format: uuid
+
+    WishlistItemResponse:
+      type: object
+      properties:
+        bookId:
+          type: string
+          format: uuid
+        book:
+          $ref: '#/components/schemas/BookSummaryResponse'
+        addedAt:
+          type: string
+          format: date-time
+
+    WishlistResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WishlistItemResponse'
+
+    ApiResponseWishlistResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/WishlistResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Cart Schemas ─────────────────────────────────────────
+    CartItemRequest:
+      type: object
+      required: [bookId, quantity]
+      properties:
+        bookId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+
+    UpdateQtyRequest:
+      type: object
+      required: [quantity]
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+
+    CartItemResponse:
+      type: object
+      properties:
+        bookId:
+          type: string
+          format: uuid
+        book:
+          $ref: '#/components/schemas/BookSummaryResponse'
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: double
+        lineTotal:
+          type: number
+          format: double
+
+    CartResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItemResponse'
+        subtotal:
+          type: number
+          format: double
+        itemCount:
+          type: integer
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookSummaryResponse'
+
+    ApiResponseCartResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/CartResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Order Schemas ────────────────────────────────────────
+    PlaceOrderRequest:
+      type: object
+      required: [addressId, paymentMethod]
+      properties:
+        addressId:
+          type: string
+          format: uuid
+        couponCode:
+          type: string
+        giftPointsToRedeem:
+          type: integer
+          minimum: 0
+        paymentMethod:
+          $ref: '#/components/schemas/PaymentMethod'
+
+    ReturnOrderRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+
+    OrderItemResponse:
+      type: object
+      properties:
+        bookId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        coverImageUrl:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: double
+        lineTotal:
+          type: number
+          format: double
+        estimatedDelivery:
+          type: string
+          format: date
+
+    OrderSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        totalAmount:
+          type: number
+          format: double
+        itemCount:
+          type: integer
+        placedAt:
+          type: string
+          format: date-time
+        cancelDeadline:
+          type: string
+          format: date-time
+
+    PaymentSummary:
+      type: object
+      properties:
+        method:
+          $ref: '#/components/schemas/PaymentMethod'
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        amount:
+          type: number
+          format: double
+        paidAt:
+          type: string
+          format: date-time
+
+    ShipmentSummary:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/ShipmentStatus'
+        trackingNumber:
+          type: string
+        carrier:
+          type: string
+        estimatedDelivery:
+          type: string
+          format: date
+
+    OrderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemResponse'
+        address:
+          $ref: '#/components/schemas/AddressResponse'
+        subtotal:
+          type: number
+          format: double
+        discountAmount:
+          type: number
+          format: double
+        shippingCost:
+          type: number
+          format: double
+        totalAmount:
+          type: number
+          format: double
+        giftPointsUsed:
+          type: integer
+        placedAt:
+          type: string
+          format: date-time
+        cancelDeadline:
+          type: string
+          format: date-time
+        payment:
+          $ref: '#/components/schemas/PaymentSummary'
+        shipment:
+          $ref: '#/components/schemas/ShipmentSummary'
+
+    ApiResponseOrderResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/OrderResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    PagedApiResponseOrderSummaryResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderSummaryResponse'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Payment Schemas ──────────────────────────────────────
+    PaymentRequest:
+      type: object
+      required: [orderId, method, amount]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        method:
+          $ref: '#/components/schemas/PaymentMethod'
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+
+    PaymentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        method:
+          $ref: '#/components/schemas/PaymentMethod'
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        amount:
+          type: number
+          format: double
+        transactionRef:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+        refundedAt:
+          type: string
+          format: date-time
+
+    WalletTransactionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [CREDIT, DEBIT]
+        amount:
+          type: number
+          format: double
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    WalletResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        balance:
+          type: number
+          format: double
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/WalletTransactionResponse'
+
+    TopUpRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          format: double
+          minimum: 1.00
+
+    ApiResponsePaymentResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/PaymentResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    ApiResponseWalletResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/WalletResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Shipping Schemas ─────────────────────────────────────
+    ShipmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        carrier:
+          type: string
+        trackingNumber:
+          type: string
+        status:
+          $ref: '#/components/schemas/ShipmentStatus'
+        estimatedDelivery:
+          type: string
+          format: date
+        dispatchedAt:
+          type: string
+          format: date-time
+        deliveredAt:
+          type: string
+          format: date-time
+
+    ShipmentUpdateRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/ShipmentStatus'
+        carrier:
+          type: string
+        trackingNumber:
+          type: string
+        estimatedDelivery:
+          type: string
+          format: date
+
+    ShippingRateRequest:
+      type: object
+      required: [pincode, weightKg]
+      properties:
+        pincode:
+          type: string
+        weightKg:
+          type: number
+          format: double
+          minimum: 0.001
+
+    ShippingRateResponse:
+      type: object
+      properties:
+        zone:
+          type: string
+        rate:
+          type: number
+          format: double
+        estimatedDeliveryDays:
+          type: integer
+
+    ApiResponseShipmentResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ShipmentResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    ApiResponseShippingRateResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ShippingRateResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Review Schemas ───────────────────────────────────────
+    ReviewRequest:
+      type: object
+      required: [bookId, rating]
+      properties:
+        bookId:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 2000
+
+    ReviewResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        userFirstName:
+          type: string
+        rating:
+          type: integer
+        comment:
+          type: string
+        status:
+          $ref: '#/components/schemas/ReviewStatus'
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiResponseReviewResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ReviewResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    PagedApiResponseReviewResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewResponse'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+        errors:
+          type: array
+          items: {}
+
+    # ── Coupon Schemas ───────────────────────────────────────
+    CouponRequest:
+      type: object
+      required: [code, discountType, discountValue, minOrderValue]
+      properties:
+        code:
+          type: string
+          minLength: 3
+          maxLength: 50
+        description:
+          type: string
+        discountType:
+          $ref: '#/components/schemas/DiscountType'
+        discountValue:
+          type: number
+          format: double
+          minimum: 0.01
+        minOrderValue:
+          type: number
+          format: double
+          minimum: 0
+        maxUses:
+          type: integer
+          minimum: 1
+        expiresAt:
+          type: string
+          format: date-time
+
+    CouponResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        description:
+          type: string
+        discountType:
+          $ref: '#/components/schemas/DiscountType'
+        discountValue:
+          type: number
+          format: double
+        minOrderValue:
+          type: number
+          format: double
+        maxUses:
+          type: integer
+        usedCount:
+          type: integer
+        expiresAt:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+
+    ApiResponseCouponResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/CouponResponse'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        errors:
+          type: array
+          items: {}
+
+    PagedApiResponseCouponResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CouponResponse'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+        errors:
+          type: array
+          items: {}
